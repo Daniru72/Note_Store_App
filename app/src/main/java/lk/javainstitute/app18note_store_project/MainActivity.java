@@ -133,14 +133,24 @@ class NoteListAdapter extends RecyclerView.Adapter<NoteListAdapter.NoteViewHolde
     public void onBindViewHolder(@NonNull NoteViewHolder holder, int position) {
         cursor.moveToPosition(position);
 
-       holder.titleView.setText( cursor.getString(1));
-       holder.contentView.setText( cursor.getString(2));
-       holder.date_createdView.setText( cursor.getString(3));
+        String id = cursor.getString(0);
+        String title = cursor.getString(1);
+        String content = cursor.getString(2);
+        String date = cursor.getString(3);
+
+       holder.titleView.setText(title);
+       holder.contentView.setText(content);
+       holder.date_createdView.setText(date);
 
        holder.containerView.setOnClickListener(new View.OnClickListener() {
            @Override
            public void onClick(View v) {
-               Log.i("MyNoteBookLog", "Item Click");
+
+               Intent i = new Intent(v.getContext(),CreateNoteActivity.class);
+               i.putExtra("id",id);
+               i.putExtra("title",title);
+               i.putExtra("content",content);
+               v.getContext().startActivity(i);
            }
        });
     }
