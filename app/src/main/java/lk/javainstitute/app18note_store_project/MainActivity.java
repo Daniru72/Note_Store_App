@@ -18,6 +18,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
+import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -47,7 +48,24 @@ public class MainActivity extends AppCompatActivity {
 
 
 
+
+
+
+
+    }
+
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+
         RecyclerView recyclerView1 = findViewById(R.id.recyclerView1);
+
+        X x  = new X();
+        ItemTouchHelper itemTouchHelper = new ItemTouchHelper(x);
+        itemTouchHelper.attachToRecyclerView(recyclerView1);
+
+
         LinearLayoutManager layoutManager = new LinearLayoutManager(MainActivity.this);
         layoutManager.setOrientation(LinearLayoutManager.VERTICAL);
         recyclerView1.setLayoutManager(layoutManager);
@@ -64,7 +82,7 @@ public class MainActivity extends AppCompatActivity {
             public void run() {
                 SQLiteDatabase sqLiteDatabase = sqLiteHelper.getReadableDatabase();
 
-               Cursor cursor = sqLiteDatabase.query(
+                Cursor cursor = sqLiteDatabase.query(
                         "note",
                         null,
                         null,
@@ -74,19 +92,17 @@ public class MainActivity extends AppCompatActivity {
                         "`id` DESC"
                 );
 
-             runOnUiThread(new Runnable() {
-                 @Override
-                 public void run() {
-                     NoteListAdapter noteListAdapter = new NoteListAdapter(cursor);
-                     recyclerView1.setAdapter(noteListAdapter);
-                 }
-             });
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        NoteListAdapter noteListAdapter = new NoteListAdapter(cursor);
+                        recyclerView1.setAdapter(noteListAdapter);
+                    }
+                });
 
 
             }
         }).start();
-
-
 
     }
 }
@@ -108,6 +124,8 @@ class NoteListAdapter extends RecyclerView.Adapter<NoteListAdapter.NoteViewHolde
         TextView date_createdView;
 
         View containerView;
+
+        String id;
 
         public NoteViewHolder(@Nullable View itemView) {
             super(itemView);
@@ -133,7 +151,7 @@ class NoteListAdapter extends RecyclerView.Adapter<NoteListAdapter.NoteViewHolde
     public void onBindViewHolder(@NonNull NoteViewHolder holder, int position) {
         cursor.moveToPosition(position);
 
-        String id = cursor.getString(0);
+        holder.id = cursor.getString(0);
         String title = cursor.getString(1);
         String content = cursor.getString(2);
         String date = cursor.getString(3);
@@ -147,13 +165,19 @@ class NoteListAdapter extends RecyclerView.Adapter<NoteListAdapter.NoteViewHolde
            public void onClick(View v) {
 
                Intent i = new Intent(v.getContext(),CreateNoteActivity.class);
-               i.putExtra("id",id);
+               i.putExtra("id", holder.id);
                i.putExtra("title",title);
                i.putExtra("content",content);
                v.getContext().startActivity(i);
            }
        });
+
+
+
+
+
     }
+
 
     @Override
     public int getItemCount() {
@@ -161,4 +185,62 @@ class NoteListAdapter extends RecyclerView.Adapter<NoteListAdapter.NoteViewHolde
     }
 
 
+    public void m(int position){
+
+        notifyItemRemoved(position);
+
+    }
+
+
+}
+
+
+
+
+
+
+
+class X extends ItemTouchHelper.Callback{
+
+
+    @Override
+    public int getMovementFlags(@NonNull RecyclerView recyclerView, @NonNull RecyclerView.ViewHolder viewHolder) {
+        return makeMovementFlags(0,ItemTouchHelper.LEFT|ItemTouchHelper.RIGHT);
+//        return 0;
+    }
+
+    @Override
+    public boolean onMove(@NonNull RecyclerView recyclerView, @NonNull RecyclerView.ViewHolder viewHolder, @NonNull RecyclerView.ViewHolder target) {
+        return false;
+    }
+
+    @Override
+    public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int direction) {
+        Log.i("MyNoteBookLog","On Swiped");
+
+        NoteListAdapter.NoteViewHolder holder = (NoteListAdapter.NoteViewHolder) viewHolder;
+
+        SQLiteHelper sqLiteHelper = new SQLiteHelper(
+                       viewHolder.itemView.getContext(),
+                       "noteapp.db",
+                       null,
+                       1
+               );
+
+               new Thread(new Runnable() {
+                   @Override
+                   public void run() {
+                       SQLiteDatabase sqLiteDatabase = sqLiteHelper.getWritableDatabase();
+                      int row = sqLiteDatabase.delete(
+                               "note",
+                               "`id`=?",
+                               new String[]{holder.id}
+                       );
+
+                       Log.i("MyNoteBookLog",row+" Row delete");
+                   }
+               }).start();
+
+
+    }
 }
